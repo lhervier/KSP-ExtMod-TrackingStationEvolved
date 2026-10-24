@@ -448,6 +448,8 @@ namespace BetterTracking
 
             GenerateUI();
 
+            SelectCurrentVessel();
+
             _instantStart = false;
         }
 
@@ -466,7 +468,42 @@ namespace BetterTracking
 
             GenerateSearchUI();
 
+            SelectCurrentVessel();
+
             _instantStart = false;
+        }
+
+        // Switches on the row of the selected vessel, if it has one, in the list just generated
+        private void SelectCurrentVessel()
+        {
+            if (_TrackingStation == null || _TrackingStation.SelectedVessel == null)
+                return;
+
+            Vessel selected = _TrackingStation.SelectedVessel;
+
+            for (int i = _TrackingVessels.Count - 1; i >= 0; i--)
+            {
+                if (_TrackingVessels[i].Vessel == selected)
+                {
+                    _TrackingVessels[i].OnVesselSelect();
+                    return;
+                }
+            }
+
+            // A search leaves the groups of the last sort in place, without rows
+            if (!string.IsNullOrEmpty(_searchString))
+                return;
+
+            for (int i = _TrackingGroups.Count - 1; i >= 0; i--)
+            {
+                IVesselItem vessel = _TrackingGroups[i].FindVessel(selected);
+
+                if (vessel != null)
+                {
+                    vessel.OnVesselSelect();
+                    return;
+                }
+            }
         }
 
         private List<Tracking_Group> SortCelestialBodies()
