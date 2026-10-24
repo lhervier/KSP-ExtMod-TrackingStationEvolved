@@ -293,6 +293,8 @@ namespace BetterTracking
                 yield return new WaitForEndOfFrame();
             }
 
+            CheckStockSelection();
+
             _TrackedVesselWidgets.Clear();
 
             ParseWidgetContainer();
@@ -349,6 +351,8 @@ namespace BetterTracking
                 yield return new WaitForEndOfFrame();
             }
 
+            CheckStockSelection();
+
             UpdateScrollRect(_NewTrackingList.transform as RectTransform);
 
             if (_ReorderableList != null)
@@ -394,6 +398,41 @@ namespace BetterTracking
             if (_ScrollView != null)
             {
                 _ScrollView.content = rect;
+            }
+        }
+
+        // Keeps the selection of the hidden stock list in line with the selected vessel after the stock list is rebuilt
+        private void CheckStockSelection()
+        {
+            if (_TrackingStation == null)
+                return;
+
+            Vessel selected = _TrackingStation.SelectedVessel;
+
+            // A vessel hidden by the map view filters stays selected, and Fly or Terminate would still act on it
+            if (selected != null && !MapViewFiltering.CheckAgainstFilter(selected))
+            {
+                Tracking_Utils.TrackingLog("Deselecting {0}, hidden by the filters", selected.vesselName);
+
+                _TrackingStation.SetVessel(null, true);
+
+                return;
+            }
+
+            // A widget of the old list destroyed while no widget is on switches the first widget of the new list on,
+            // without selecting its vessel, and that widget then ignores single clicks
+            for (int i = _TrackingStation.listContainer.childCount - 1; i >= 0; i--)
+            {
+                TrackingStationWidget widget = _TrackingStation.listContainer.GetChild(i).GetComponent<TrackingStationWidget>();
+
+                if (widget != null && widget.toggle.isOn && widget.vessel != selected)
+                {
+                    Tracking_Utils.TrackingLog("Switching off the widget of {0}, on but not selected", widget.vessel == null ? "no vessel" : widget.vessel.vesselName);
+
+                    _TrackingStation.listToggleGroup.SetAllTogglesOff();
+
+                    break;
+                }
             }
         }
 
